@@ -1,16 +1,28 @@
 # Paco's Scanner
 
+**Scan it. Straighten it. Save it. Send it.**
+
 Open-source Android document scanner created by Paco in collaboration with OpenAI's ChatGPT. MIT licensed.
 
-## v0.3 source prototype — not compiled or device-tested
+## Status: v0.4 source prototype — not compiled or device-tested
 
-- Capture a photo or import multiple pictures
-- **Experimental offline automatic corner suggestion** for bright paper on contrasting backgrounds
-- Manual four-corner adjustment and perspective correction
-- Multi-page PDF creation, private folder paths, Android share sheet
+### Implemented in source
+- **New visual home screen:** navy and turquoise palette, prominent Scan Document action, saved folders, recent PDFs, and light/dark/follow-system appearance preferences
+- Camera capture and multi-image import
+- Experimental offline document corner suggestion, manual adjustment, perspective correction
+- Multi-page PDF creation and sharing through the Android share sheet
+- On-device private document storage
 
-To try: Open in Android Studio, sync Gradle, run on device, add a photo, tap **Straighten last page**, inspect the proposed corners and drag them if needed, then tap **Straighten & Save**.
+### Planned / not yet working
+The home screen is the **first implementation**, not a pixel-perfect match to the concept artwork. Its gallery shortcut currently opens the scanner workflow; saved-file rows are previews, not an interactive document browser. Automatic detection is a basic brightness heuristic and may fail on shadows or low contrast. Full camera overlay, thumbnails, folder management, document search, page reorder, OCR, integrated fax, animations, and polished icons are still planned.
 
-Automatic edge detection is a lightweight brightness-gradient heuristic, not a production-grade detector. It can fail on low-contrast backgrounds, shadows, clutter and dark paper. In that case manual corners are shown. The prototype edits the most recent page only; EXIF orientation and large-image memory behavior require testing. There is no document browser, OCR or integrated fax service yet. Gradle wrapper is not included.
+### Build and test
+Open this repository in Android Studio, sync Gradle, run on an Android phone. Gradle wrapper is not yet included. No compiled APK has been verified.
 
-Documents remain in private app storage until shared. Export important documents before uninstalling. Do not commit scans, keys or credentials.
+### Privacy
+No ads or remote document processing. PDFs are saved in private app storage, which is deleted when the app is uninstalled; export important documents. Sharing with external apps is governed by those apps' policies.
+
+### Design integrity
+Any promotional images are **concept mockups**, not screenshots of the current app. Features in mockups may be aspirational until implemented and verified.
+
+Please don't commit private documents, API keys, or credentials.
