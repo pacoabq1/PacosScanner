@@ -1,20 +1,16 @@
 # Paco's Scanner
 
-Open-source Android document scanner created by Paco in collaboration with OpenAI's ChatGPT.
+Open-source Android document scanner created by Paco in collaboration with OpenAI's ChatGPT. MIT licensed.
 
-## v0.2 source prototype (not yet compiled or device-tested)
+## v0.3 source prototype — not compiled or device-tested
 
-- Capture photos with an installed camera app or import multiple images
-- **New:** Drag four corners and apply perspective correction to the last page using Android's `Matrix.setPolyToPoly`
-- Combine pages into PDF, save in private app folders and share through Android
+- Capture a photo or import multiple pictures
+- **Experimental offline automatic corner suggestion** for bright paper on contrasting backgrounds
+- Manual four-corner adjustment and perspective correction
+- Multi-page PDF creation, private folder paths, Android share sheet
 
-### Try it
-Open in Android Studio, sync Gradle, run on your Android device. Add an image, tap **Straighten last page**, drag the cyan corner handles to the document edges, tap **Straighten & Save**, then **Save pages as PDF**.
+To try: Open in Android Studio, sync Gradle, run on device, add a photo, tap **Straighten last page**, inspect the proposed corners and drag them if needed, then tap **Straighten & Save**.
 
-### Limitations
-The correction is manual, not automatic yet. This prototype only edits the most recently added page; camera orientation/EXIF, large PDF memory usage, and rotated imports still need testing and refinement. No OCR, built-in fax service, or document browser yet. Gradle wrapper is not included.
+Automatic edge detection is a lightweight brightness-gradient heuristic, not a production-grade detector. It can fail on low-contrast backgrounds, shadows, clutter and dark paper. In that case manual corners are shown. The prototype edits the most recent page only; EXIF orientation and large-image memory behavior require testing. There is no document browser, OCR or integrated fax service yet. Gradle wrapper is not included.
 
-### Privacy
-No remote server or ads. Documents are stored privately on device. Export important documents because uninstalling the app removes private storage. External sharing apps have their own privacy policies.
-
-MIT licensed. Contributions welcome; do not commit personal scans, credentials or API keys.
+Documents remain in private app storage until shared. Export important documents before uninstalling. Do not commit scans, keys or credentials.
