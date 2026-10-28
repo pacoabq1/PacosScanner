@@ -1,29 +1,20 @@
 # Paco's Scanner
 
-**An open-source, privacy-first Android document scanner.**
+Open-source Android document scanner created by Paco in collaboration with OpenAI's ChatGPT.
 
-Created by Paco in collaboration with OpenAI's ChatGPT. Licensed under MIT.
+## v0.2 source prototype (not yet compiled or device-tested)
 
-## Status: v0.1 source prototype — not yet built or device-tested
+- Capture photos with an installed camera app or import multiple images
+- **New:** Drag four corners and apply perspective correction to the last page using Android's `Matrix.setPolyToPoly`
+- Combine pages into PDF, save in private app folders and share through Android
 
-Implemented in starter source: camera capture, multiple image import, multi-page PDF creation, private on-device folder paths, and Android share sheet (email or installed fax app).
+### Try it
+Open in Android Studio, sync Gradle, run on your Android device. Add an image, tap **Straighten last page**, drag the cyan corner handles to the document edges, tap **Straighten & Save**, then **Save pages as PDF**.
 
-Not yet implemented: automatic corner detection, perspective correction, manual cropping, OCR, document browser, page reordering, dark mode, built-in fax integration, and public-folder export.
+### Limitations
+The correction is manual, not automatic yet. This prototype only edits the most recently added page; camera orientation/EXIF, large PDF memory usage, and rotated imports still need testing and refinement. No OCR, built-in fax service, or document browser yet. Gradle wrapper is not included.
 
-## Open in Android Studio
+### Privacy
+No remote server or ads. Documents are stored privately on device. Export important documents because uninstalling the app removes private storage. External sharing apps have their own privacy policies.
 
-Open the PacosScanner folder, sync Gradle (Android SDK 35), and run on an Android device. The Gradle wrapper is not yet included; use a configured Gradle installation.
-
-## Privacy
-
-No ads, analytics or remote backend. PDFs are in private app storage and may be deleted when the app is uninstalled. Export important files. Sharing sends a file to an external app governed by its own privacy practices.
-
-## Roadmap
-
-- v0.2: manual four-corner crop and perspective correction
-- v0.3: auto edge detection and enhancement
-- v0.4: folder browser, document management and backups
-- v0.5: on-device OCR and search
-- v0.6: optional fax provider integration
-
-Contributions and issues welcome. Never commit scanned documents, secrets or API keys.
+MIT licensed. Contributions welcome; do not commit personal scans, credentials or API keys.
