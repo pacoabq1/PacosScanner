@@ -14,17 +14,23 @@ class MainActivity:ComponentActivity(){
  private lateinit var status:TextView
  private lateinit var folder:EditText
  private var pendingPhoto:File?=null
+ private val review=registerForActivityResult(ActivityResultContracts.StartActivityForResult()){result->
+  if(result.resultCode==RESULT_OK){
+   result.data?.getStringExtra("accepted_path")?.let{pages.add(File(it))}
+  }
+  pendingPhoto=null;updateStatus()
+ }
  private val takePhoto=registerForActivityResult(ActivityResultContracts.TakePicture()){ok->
-  if(ok)pendingPhoto?.let{pages.add(it)}
-  updateStatus()
+  val photo=pendingPhoto
+  if(ok && photo!=null)review.launch(Intent(this,ScanReviewActivity::class.java).putExtra("path",photo.absolutePath))
+  else {pendingPhoto=null;updateStatus()}
  }
  private val pickImages=registerForActivityResult(ActivityResultContracts.GetMultipleContents()){uris->
   uris.forEach {uri->
    val dest=File(cacheDir,"import_${System.nanoTime()}.img")
    contentResolver.openInputStream(uri)?.use {input->dest.outputStream().use {input.copyTo(it)}}
    if(dest.length()>0)pages.add(dest)
-  }
-  updateStatus()
+  };updateStatus()
  }
  private val straighten=registerForActivityResult(ActivityResultContracts.StartActivityForResult()){result->
   if(result.resultCode==RESULT_OK){
@@ -38,9 +44,8 @@ class MainActivity:ComponentActivity(){
   super.onCreate(savedInstanceState)
   val layout=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(36,50,36,24)}
   layout.addView(TextView(this).apply{text="Paco's Scanner";textSize=27f})
-  layout.addView(TextView(this).apply{text="Private document scanning • v0.2 prototype"})
-  folder=EditText(this).apply{hint="Folder (e.g. Medical/Receipts)";setText("Inbox")}
-  layout.addView(folder)
+  layout.addView(TextView(this).apply{text="Capture • review • straighten • create PDF"})
+  folder=EditText(this).apply{hint="Folder (e.g. Military/Buyback)";setText("Inbox")};layout.addView(folder)
   status=TextView(this).apply{text="0 pages ready";textSize=18f};layout.addView(status)
   fun button(label:String,action:()->Unit){layout.addView(Button(this).apply{text=label;setOnClickListener{action()}})}
   button("Take a picture"){
@@ -56,22 +61,19 @@ class MainActivity:ComponentActivity(){
   }
   button("Save pages as PDF"){savePdf()}
   button("Clear current pages"){pages.clear();updateStatus()}
-  layout.addView(TextView(this).apply{text="Drag the four corner handles to correct perspective. PDFs stay in private app storage; share to export."})
+  layout.addView(TextView(this).apply{text="Captured photos now stop at a review screen before joining your document. Use Adjust Corners for perspective correction."})
   setContentView(ScrollView(this).apply{addView(layout)})
  }
  private fun savePdf(){
   if(pages.isEmpty()){Toast.makeText(this,"Add a page first",Toast.LENGTH_SHORT).show();return}
   val segments=folder.text.toString().split('/').map{it.trim().replace(Regex("[^a-zA-Z0-9 _-]"),"_")}.filter{it.isNotBlank()&&it!="."&&it!=".."}
   val dir=segments.fold(File(filesDir,"documents")){parent,s->File(parent,s)}.apply{mkdirs()}
-  val file=File(dir,"scan_${System.currentTimeMillis()}.pdf")
-  val pdf=PdfDocument()
-  var count=0
+  val file=File(dir,"scan_${System.currentTimeMillis()}.pdf");val pdf=PdfDocument();var count=0
   try{
    pages.forEach {img->
     val bitmap=BitmapFactory.decodeFile(img.absolutePath)?:return@forEach
     val page=pdf.startPage(PdfDocument.PageInfo.Builder(595,842,count+1).create())
-    val scale=minOf(555f/bitmap.width,802f/bitmap.height)
-    val w=bitmap.width*scale;val h=bitmap.height*scale
+    val scale=minOf(555f/bitmap.width,802f/bitmap.height);val w=bitmap.width*scale;val h=bitmap.height*scale
     page.canvas.drawBitmap(bitmap,null,android.graphics.RectF((595-w)/2,(842-h)/2,(595+w)/2,(842+h)/2),null)
     pdf.finishPage(page);bitmap.recycle();count++
    }
