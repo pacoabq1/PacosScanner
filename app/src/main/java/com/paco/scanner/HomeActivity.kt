@@ -53,7 +53,7 @@ class HomeActivity : Activity() {
  private fun render(){
   chooseTheme()
   root=container().apply{setPadding(dp(22),dp(24),dp(22),dp(24));setBackgroundColor(bg)}
-  val scroller=ScrollView(this).apply{fillViewport=true;addView(root)}
+  val scroller=ScrollView(this).apply{isFillViewport=true;addView(root)}
   setContentView(scroller)
   val header=row()
   add(header,text("▣",33f,true,cyan))
