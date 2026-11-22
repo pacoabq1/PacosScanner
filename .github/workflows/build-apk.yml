@@ -1,0 +1,46 @@
+name: Build test APK
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build debug APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Name the APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk PacosScanner-test.apk
+
+      - name: Keep the APK with this run
+        uses: actions/upload-artifact@v4
+        with:
+          name: PacosScanner-test-apk
+          path: PacosScanner-test.apk
+
+      - name: Publish to the "Test build" release (easy to download on a phone)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete test-build --cleanup-tag --yes || true
+          gh release create test-build PacosScanner-test.apk \
+            --prerelease \
+            --target "$GITHUB_SHA" \
+            --title "Paco's Scanner test build #${GITHUB_RUN_NUMBER}" \
+            --notes "Built from branch ${GITHUB_REF_NAME}, commit ${GITHUB_SHA::7}. Tap PacosScanner-test.apk below on your phone to download and install."

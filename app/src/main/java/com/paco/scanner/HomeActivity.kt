@@ -65,7 +65,7 @@ class HomeActivity : Activity() {
    text="▣\nScan Document";textSize=21f;typeface=Typeface.DEFAULT_BOLD;setTextColor(Color.rgb(0,35,47))
    gravity=Gravity.CENTER;setPadding(dp(30),dp(22),dp(30),dp(22))
    background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(Color.rgb(72,244,237),Color.rgb(0,172,198))).apply{cornerRadius=dp(28).toFloat()}
-   setOnClickListener{startActivity(Intent(this@HomeActivity,MainActivity::class.java))}
+   setOnClickListener{startActivity(Intent(this@HomeActivity,MainActivity::class.java).putExtra(MainActivity.EXTRA_START_SCAN,true))}
   }
   root.addView(scan,LinearLayout.LayoutParams(-1,dp(150)).apply{topMargin=dp(26);bottomMargin=dp(16)})
   val actions=row()

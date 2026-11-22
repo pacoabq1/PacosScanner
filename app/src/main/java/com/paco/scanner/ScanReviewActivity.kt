@@ -1,5 +1,4 @@
 package com.paco.scanner
-import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
@@ -7,10 +6,12 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.Gravity
 import android.widget.*
+import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import java.io.File
 
-class ScanReviewActivity:Activity(){
+class ScanReviewActivity:ComponentActivity(){
+ companion object{const val RESULT_RETAKE=android.app.Activity.RESULT_FIRST_USER}
  private lateinit var source:File
  private var currentPath:String=""
  private val cyan=Color.rgb(52,235,229)
@@ -32,7 +33,7 @@ class ScanReviewActivity:Activity(){
   val adjust=TextView(this).apply{text="◇  Adjust Corners / Straighten";textSize=16f;typeface=Typeface.DEFAULT_BOLD;setTextColor(Color.WHITE);gravity=Gravity.CENTER;setPadding(dp(12),dp(15),dp(12),dp(15));background=pill(Color.rgb(15,57,82));setOnClickListener{crop.launch(Intent(this@ScanReviewActivity,CropActivity::class.java).putExtra("path",currentPath))}}
   root.addView(adjust,LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(10)})
   val buttons=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL}
-  val retake=TextView(this).apply{text="Retake";textSize=16f;typeface=Typeface.DEFAULT_BOLD;setTextColor(Color.WHITE);gravity=Gravity.CENTER;setPadding(0,dp(16),0,dp(16));background=pill(Color.rgb(38,61,79));setOnClickListener{setResult(RESULT_CANCELED);finish()}}
+  val retake=TextView(this).apply{text="Retake";textSize=16f;typeface=Typeface.DEFAULT_BOLD;setTextColor(Color.WHITE);gravity=Gravity.CENTER;setPadding(0,dp(16),0,dp(16));background=pill(Color.rgb(38,61,79));setOnClickListener{setResult(RESULT_RETAKE);finish()}}
   val keep=TextView(this).apply{text="✓  Keep Scan";textSize=16f;typeface=Typeface.DEFAULT_BOLD;setTextColor(Color.rgb(0,42,48));gravity=Gravity.CENTER;setPadding(0,dp(16),0,dp(16));background=pill(cyan);setOnClickListener{setResult(RESULT_OK,Intent().putExtra("accepted_path",currentPath));finish()}}
   buttons.addView(retake,LinearLayout.LayoutParams(0,-2,1f).apply{rightMargin=dp(6)})
   buttons.addView(keep,LinearLayout.LayoutParams(0,-2,1f).apply{leftMargin=dp(6)})
