@@ -4,7 +4,7 @@
 
 Open-source Android document scanner created by Paco in collaboration with OpenAI's ChatGPT. MIT licensed.
 
-## Status: v0.5 test build — built automatically by GitHub, not yet device-tested
+## Status: v1.0 — tested on a Galaxy S24
 
 ### Implemented in source
 - **New visual home screen:** navy and turquoise palette, prominent Scan Document action, saved folders, recent PDFs, and light/dark/follow-system appearance preferences
