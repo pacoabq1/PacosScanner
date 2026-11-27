@@ -35,7 +35,7 @@ jobs:
           path: PacosScanner-test.apk
 
       - name: Publish to the "Test build" release (easy to download on a phone)
-        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        if: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -46,13 +46,20 @@ jobs:
             --title "Paco's Scanner test build #${GITHUB_RUN_NUMBER}" \
             --notes "Built from branch ${GITHUB_REF_NAME}, commit ${GITHUB_SHA::7}. Tap PacosScanner-test.apk below on your phone to download and install."
 
-      - name: Publish an official release for a version tag (like v1.0)
-        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+      - name: Publish an official release when main gets a new version
+        if: ${{ github.ref == 'refs/heads/main' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp PacosScanner-test.apk "PacosScanner-${GITHUB_REF_NAME}.apk"
-          gh release create "$GITHUB_REF_NAME" "PacosScanner-${GITHUB_REF_NAME}.apk" \
+          VERSION=$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts | head -1)
+          TAG="v${VERSION}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; bump versionName in app/build.gradle.kts for a new one."
+            exit 0
+          fi
+          cp PacosScanner-test.apk "PacosScanner-${TAG}.apk"
+          gh release create "$TAG" "PacosScanner-${TAG}.apk" \
+            --target "$GITHUB_SHA" \
             --latest \
-            --title "Paco's Scanner ${GITHUB_REF_NAME}" \
-            --notes "Official release ${GITHUB_REF_NAME}. Tap PacosScanner-${GITHUB_REF_NAME}.apk below on your phone to download and install. It installs over the test builds and keeps your saved documents."
+            --title "Paco's Scanner ${TAG}" \
+            --notes "Official release ${TAG}. Tap PacosScanner-${TAG}.apk below on your phone to download and install. It installs over the test builds and keeps your saved documents."

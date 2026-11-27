@@ -20,7 +20,7 @@ Open-source Android document scanner created by Paco in collaboration with OpenA
 The home screen is the **first implementation**, not a pixel-perfect match to the concept artwork. Its gallery shortcut currently opens the scanner workflow; saved-file rows are previews, not an interactive document browser. Automatic detection is a basic brightness heuristic and may fail on shadows or low contrast. Full camera overlay, thumbnails, folder management, document search, page reorder, OCR, integrated fax, animations, and polished icons are still planned.
 
 ### Build and test
-Every push to GitHub builds the app automatically (see the Actions tab). The newest build is attached to the **Test build** release:
+Every push to GitHub builds the app automatically (see the Actions tab). Official versions from main are on the **Releases** page (for example v1.0.0), and the newest work-in-progress build is the **Test build** release:
 
 1. On your phone, open this repository's **Releases** page and tap **PacosScanner-test.apk**.
 2. Open the downloaded file. The first time, Android asks you to allow installs from your browser; allow it, then tap Install.
