@@ -5,3 +5,6 @@ local.properties
 *.iml
 *.keystore
 *.jks
+
+# Shared debug-only signing key, so each test build installs over the last one.
+!app/ci-debug.keystore

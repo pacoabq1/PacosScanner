@@ -53,7 +53,7 @@ class HomeActivity : Activity() {
  private fun render(){
   chooseTheme()
   root=container().apply{setPadding(dp(22),dp(24),dp(22),dp(24));setBackgroundColor(bg)}
-  val scroller=ScrollView(this).apply{fillViewport=true;addView(root)}
+  val scroller=ScrollView(this).apply{isFillViewport=true;addView(root)}
   setContentView(scroller)
   val header=row()
   add(header,text("▣",33f,true,cyan))
@@ -65,7 +65,7 @@ class HomeActivity : Activity() {
    text="▣\nScan Document";textSize=21f;typeface=Typeface.DEFAULT_BOLD;setTextColor(Color.rgb(0,35,47))
    gravity=Gravity.CENTER;setPadding(dp(30),dp(22),dp(30),dp(22))
    background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(Color.rgb(72,244,237),Color.rgb(0,172,198))).apply{cornerRadius=dp(28).toFloat()}
-   setOnClickListener{startActivity(Intent(this@HomeActivity,MainActivity::class.java))}
+   setOnClickListener{startActivity(Intent(this@HomeActivity,MainActivity::class.java).putExtra(MainActivity.EXTRA_START_SCAN,true))}
   }
   root.addView(scan,LinearLayout.LayoutParams(-1,dp(150)).apply{topMargin=dp(26);bottomMargin=dp(16)})
   val actions=row()
@@ -85,6 +85,7 @@ class HomeActivity : Activity() {
     add(item,text("📁",25f,false,colors[i%colors.size]))
     val count=f.walkTopDown().count{it.isFile&&it.extension.equals("pdf",true)}
     add(item,container().apply{setPadding(dp(14),0,0,0);addView(text(f.name,16f,true));addView(text("$count documents",12f,false,secondary))},1f)
+    item.setOnClickListener{showFolder(f)}
     root.addView(item,LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(8)})
    }
   }
@@ -94,7 +95,10 @@ class HomeActivity : Activity() {
   docs.forEach{file->
    val item=row().apply{setPadding(dp(13),dp(12),dp(13),dp(12));background=shape(panel)}
    add(item,text("▤",30f,true,cyan))
-   add(item,container().apply{setPadding(dp(14),0,0,0);addView(text(file.name,14f,true));addView(text(SimpleDateFormat("MMM d, yyyy",Locale.getDefault()).format(Date(file.lastModified())),12f,false,secondary))},1f)
+   add(item,container().apply{setPadding(dp(14),0,0,0);addView(text(file.nameWithoutExtension,14f,true));addView(text(SimpleDateFormat("MMM d, yyyy",Locale.getDefault()).format(Date(file.lastModified())),12f,false,secondary))},1f)
+   add(item,text("Rename",13f,true,cyan).apply{setPadding(dp(12),dp(8),0,dp(8));setOnClickListener{renameDoc(file)}})
+   add(item,text("Share",13f,true,cyan).apply{setPadding(dp(12),dp(8),0,dp(8));setOnClickListener{Documents.share(this@HomeActivity,file)}})
+   item.setOnClickListener{Documents.open(this,file)}
    root.addView(item,LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(8)})
   }
   root.addView(text("On-device storage • No account required",12f,false,secondary).apply{gravity=Gravity.CENTER;setPadding(0,dp(26),0,0)})
@@ -106,16 +110,48 @@ class HomeActivity : Activity() {
   root.addView(r)
  }
  private fun showFolders(){
-  val dirs=docsRoot().walkTopDown().filter{it.isDirectory&&it!=docsRoot()}.map{it.relativeTo(docsRoot()).path}.toList()
+  val dirs=docsRoot().walkTopDown().filter{it.isDirectory&&it!=docsRoot()}.toList()
+  if(dirs.isEmpty()){
+   android.app.AlertDialog.Builder(this).setTitle("Document folders").setMessage("No folders yet. Save a PDF to create one.").setPositiveButton("Close",null).show()
+   return
+  }
   android.app.AlertDialog.Builder(this).setTitle("Document folders")
-   .setItems((if(dirs.isEmpty())listOf("No folders yet — save a PDF to create one.") else dirs).toTypedArray(),null)
+   .setItems(dirs.map{it.relativeTo(docsRoot()).path}.toTypedArray()){_,i->showFolder(dirs[i])}
    .setPositiveButton("Close",null).show()
  }
- private fun showRecent(){
-  val files=allPdfs()
-  android.app.AlertDialog.Builder(this).setTitle("Saved PDFs")
-   .setItems((if(files.isEmpty())listOf("No PDFs yet") else files.map{it.name}).toTypedArray(),null)
-   .setPositiveButton("Close",null).show()
+ /** Lists the PDFs in one folder; tapping one opens it. */
+ private fun showFolder(dir:File){
+  val files=dir.walkTopDown().filter{it.isFile&&it.extension.equals("pdf",true)}.toList().sortedByDescending{it.lastModified()}
+  showPdfList(dir.relativeTo(docsRoot()).path,files)
+ }
+ private fun showRecent(){showPdfList("Saved PDFs",allPdfs())}
+ /** Tap a PDF to open it; press and hold for Rename and Share. */
+ private fun showPdfList(title:String,files:List<File>){
+  val b=android.app.AlertDialog.Builder(this).setTitle(title).setPositiveButton("Close",null)
+  if(files.isEmpty()){b.setMessage("No PDFs here yet.");b.show();return}
+  b.setItems(files.map{it.nameWithoutExtension}.toTypedArray()){_,i->Documents.open(this,files[i])}
+  val dialog=b.show()
+  dialog.listView?.setOnItemLongClickListener{_,_,i,_->dialog.dismiss();fileActions(files[i]);true}
+  Toast.makeText(this,"Tap to open. Press and hold to rename or share.",Toast.LENGTH_SHORT).show()
+ }
+ private fun fileActions(file:File){
+  android.app.AlertDialog.Builder(this).setTitle(file.nameWithoutExtension)
+   .setItems(arrayOf("Open","Rename","Share")){_,i->when(i){0->Documents.open(this,file);1->renameDoc(file);else->Documents.share(this,file)}}
+   .setNegativeButton("Cancel",null).show()
+ }
+ private fun renameDoc(file:File){
+  Documents.askName(this,"Rename document",file.nameWithoutExtension,"Rename"){newName->
+   val folder=(file.parentFile?:docsRoot()).relativeTo(docsRoot()).path.split('/',File.separatorChar).filter{it.isNotBlank()}
+   var phoneOk=true
+   val renamed=Documents.rename(this,file,folder,newName){phoneOk=it}
+   val msg=when{
+    renamed==null->"Couldn't rename that document."
+    !phoneOk->"Renamed to ${renamed.nameWithoutExtension} here, but the copy in Documents/PacosScanner kept its old name."
+    else->"Renamed to ${renamed.nameWithoutExtension}"
+   }
+   Toast.makeText(this,msg,Toast.LENGTH_LONG).show()
+   render()
+  }
  }
  private fun showSettings(){
   val options=arrayOf("Follow phone settings","Dark","Light")
