@@ -95,7 +95,8 @@ class HomeActivity : Activity() {
   docs.forEach{file->
    val item=row().apply{setPadding(dp(13),dp(12),dp(13),dp(12));background=shape(panel)}
    add(item,text("▤",30f,true,cyan))
-   add(item,container().apply{setPadding(dp(14),0,0,0);addView(text(file.name,14f,true));addView(text(SimpleDateFormat("MMM d, yyyy",Locale.getDefault()).format(Date(file.lastModified())),12f,false,secondary))},1f)
+   add(item,container().apply{setPadding(dp(14),0,0,0);addView(text(file.nameWithoutExtension,14f,true));addView(text(SimpleDateFormat("MMM d, yyyy",Locale.getDefault()).format(Date(file.lastModified())),12f,false,secondary))},1f)
+   add(item,text("Rename",13f,true,cyan).apply{setPadding(dp(12),dp(8),0,dp(8));setOnClickListener{renameDoc(file)}})
    add(item,text("Share",13f,true,cyan).apply{setPadding(dp(12),dp(8),0,dp(8));setOnClickListener{Documents.share(this@HomeActivity,file)}})
    item.setOnClickListener{Documents.open(this,file)}
    root.addView(item,LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(8)})
@@ -124,11 +125,33 @@ class HomeActivity : Activity() {
   showPdfList(dir.relativeTo(docsRoot()).path,files)
  }
  private fun showRecent(){showPdfList("Saved PDFs",allPdfs())}
+ /** Tap a PDF to open it; press and hold for Rename and Share. */
  private fun showPdfList(title:String,files:List<File>){
   val b=android.app.AlertDialog.Builder(this).setTitle(title).setPositiveButton("Close",null)
-  if(files.isEmpty())b.setMessage("No PDFs here yet.")
-  else b.setItems(files.map{it.name}.toTypedArray()){_,i->Documents.open(this,files[i])}
-  b.show()
+  if(files.isEmpty()){b.setMessage("No PDFs here yet.");b.show();return}
+  b.setItems(files.map{it.nameWithoutExtension}.toTypedArray()){_,i->Documents.open(this,files[i])}
+  val dialog=b.show()
+  dialog.listView?.setOnItemLongClickListener{_,_,i,_->dialog.dismiss();fileActions(files[i]);true}
+  Toast.makeText(this,"Tap to open. Press and hold to rename or share.",Toast.LENGTH_SHORT).show()
+ }
+ private fun fileActions(file:File){
+  android.app.AlertDialog.Builder(this).setTitle(file.nameWithoutExtension)
+   .setItems(arrayOf("Open","Rename","Share")){_,i->when(i){0->Documents.open(this,file);1->renameDoc(file);else->Documents.share(this,file)}}
+   .setNegativeButton("Cancel",null).show()
+ }
+ private fun renameDoc(file:File){
+  Documents.askName(this,"Rename document",file.nameWithoutExtension,"Rename"){newName->
+   val folder=(file.parentFile?:docsRoot()).relativeTo(docsRoot()).path.split('/',File.separatorChar).filter{it.isNotBlank()}
+   var phoneOk=true
+   val renamed=Documents.rename(this,file,folder,newName){phoneOk=it}
+   val msg=when{
+    renamed==null->"Couldn't rename that document."
+    !phoneOk->"Renamed to ${renamed.nameWithoutExtension} here, but the copy in Documents/PacosScanner kept its old name."
+    else->"Renamed to ${renamed.nameWithoutExtension}"
+   }
+   Toast.makeText(this,msg,Toast.LENGTH_LONG).show()
+   render()
+  }
  }
  private fun showSettings(){
   val options=arrayOf("Follow phone settings","Dark","Light")

@@ -130,7 +130,10 @@ class MainActivity : ComponentActivity() {
             if (pages.isEmpty()) toast("Add a page first")
             else straighten.launch(Intent(this, CropActivity::class.java).putExtra("path", pages.last().absolutePath))
         }
-        button("Save pages as PDF") { savePdf() }
+        button("Save pages as PDF") {
+            if (pages.isEmpty()) toast("Add a page first")
+            else Documents.askName(this, "Name this document", Documents.defaultName(), "Save") { savePdf(it) }
+        }
         button("Clear current pages") { pages.clear(); updateStatus() }
         layout.addView(TextView(this).apply {
             text = "Scan document finds the page edges, straightens and cleans up each page for you. " +
@@ -147,13 +150,13 @@ class MainActivity : ComponentActivity() {
         pendingPhoto?.let { outState.putString("pendingPhoto", it.absolutePath) }
     }
 
-    private fun savePdf() {
+    private fun savePdf(name: String) {
         if (pages.isEmpty()) { toast("Add a page first"); return }
         val segments = folder.text.toString().split('/')
             .map { it.trim().replace(Regex("[^a-zA-Z0-9 _-]"), "_") }
             .filter { it.isNotBlank() && it != "." && it != ".." }
         val dir = segments.fold(File(filesDir, "documents")) { parent, s -> File(parent, s) }.apply { mkdirs() }
-        val file = File(dir, "scan_${System.currentTimeMillis()}.pdf")
+        val file = Documents.uniqueFile(dir, name)
         val pdf = PdfDocument()
         var count = 0
         try {
