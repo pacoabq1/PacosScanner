@@ -11,7 +11,8 @@ Open-source Android document scanner created by Paco in collaboration with OpenA
 - **Scan Document** opens Google's on-phone document scanner (ML Kit): automatic page edges, straightening, cleanup filters and multi-page capture. Runs on the phone through Google Play services; nothing is uploaded.
 - Camera capture and multi-image import, with photos turned upright automatically (fixes sideways pages from phone cameras)
 - Experimental offline document corner suggestion, manual adjustment, perspective correction
-- Multi-page PDF creation and sharing through the Android share sheet
+- Multi-page PDF creation, saved to Documents/PacosScanner on the phone, with Open and Share options
+- Tap a recent document or folder on the home screen to open it in the phone's PDF viewer
 - On-device private document storage
 
 ### Planned / not yet working
@@ -27,7 +28,7 @@ Every push to GitHub builds the app automatically (see the Actions tab). The new
 You can still open the project in Android Studio and run it on a phone. The Gradle wrapper is now included.
 
 ### Privacy
-No ads or remote document processing. PDFs are saved in private app storage, which is deleted when the app is uninstalled; export important documents. Sharing with external apps is governed by those apps' policies.
+No ads or remote document processing. Each PDF is saved on the phone in Documents/PacosScanner/<folder> (visible in My Files, kept if the app is uninstalled), plus a copy inside the app for the home screen list. Sharing with external apps is governed by those apps' policies.
 
 ### Design integrity
 Any promotional images are **concept mockups**, not screenshots of the current app. Features in mockups may be aspirational until implemented and verified.

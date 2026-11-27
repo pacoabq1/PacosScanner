@@ -180,14 +180,17 @@ class MainActivity : ComponentActivity() {
             pdf.close()
         }
         pages.clear()
+        val savedIn = Documents.saveToPhone(this, file, segments)
         status.text = "Saved ${file.name}"
-        val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
-        val share = Intent(Intent.ACTION_SEND).apply {
-            type = "application/pdf"
-            putExtra(Intent.EXTRA_STREAM, uri)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        startActivity(Intent.createChooser(share, "Email, fax, or share PDF"))
+        val message = if (savedIn != null) "Saved to your phone in $savedIn.\n\nYou can find it in My Files under Documents, or on the home screen here."
+            else "Saved in the app, but it couldn't be copied to your phone's Documents folder. You can still open or share it from the home screen."
+        android.app.AlertDialog.Builder(this)
+            .setTitle("PDF saved")
+            .setMessage(message)
+            .setPositiveButton("Done", null)
+            .setNeutralButton("Share") { _, _ -> Documents.share(this, file) }
+            .setNegativeButton("Open") { _, _ -> Documents.open(this, file) }
+            .show()
     }
 
     companion object {

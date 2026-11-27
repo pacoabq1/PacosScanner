@@ -85,6 +85,7 @@ class HomeActivity : Activity() {
     add(item,text("📁",25f,false,colors[i%colors.size]))
     val count=f.walkTopDown().count{it.isFile&&it.extension.equals("pdf",true)}
     add(item,container().apply{setPadding(dp(14),0,0,0);addView(text(f.name,16f,true));addView(text("$count documents",12f,false,secondary))},1f)
+    item.setOnClickListener{showFolder(f)}
     root.addView(item,LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(8)})
    }
   }
@@ -95,6 +96,8 @@ class HomeActivity : Activity() {
    val item=row().apply{setPadding(dp(13),dp(12),dp(13),dp(12));background=shape(panel)}
    add(item,text("▤",30f,true,cyan))
    add(item,container().apply{setPadding(dp(14),0,0,0);addView(text(file.name,14f,true));addView(text(SimpleDateFormat("MMM d, yyyy",Locale.getDefault()).format(Date(file.lastModified())),12f,false,secondary))},1f)
+   add(item,text("Share",13f,true,cyan).apply{setPadding(dp(12),dp(8),0,dp(8));setOnClickListener{Documents.share(this@HomeActivity,file)}})
+   item.setOnClickListener{Documents.open(this,file)}
    root.addView(item,LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(8)})
   }
   root.addView(text("On-device storage • No account required",12f,false,secondary).apply{gravity=Gravity.CENTER;setPadding(0,dp(26),0,0)})
@@ -106,16 +109,26 @@ class HomeActivity : Activity() {
   root.addView(r)
  }
  private fun showFolders(){
-  val dirs=docsRoot().walkTopDown().filter{it.isDirectory&&it!=docsRoot()}.map{it.relativeTo(docsRoot()).path}.toList()
+  val dirs=docsRoot().walkTopDown().filter{it.isDirectory&&it!=docsRoot()}.toList()
+  if(dirs.isEmpty()){
+   android.app.AlertDialog.Builder(this).setTitle("Document folders").setMessage("No folders yet. Save a PDF to create one.").setPositiveButton("Close",null).show()
+   return
+  }
   android.app.AlertDialog.Builder(this).setTitle("Document folders")
-   .setItems((if(dirs.isEmpty())listOf("No folders yet — save a PDF to create one.") else dirs).toTypedArray(),null)
+   .setItems(dirs.map{it.relativeTo(docsRoot()).path}.toTypedArray()){_,i->showFolder(dirs[i])}
    .setPositiveButton("Close",null).show()
  }
- private fun showRecent(){
-  val files=allPdfs()
-  android.app.AlertDialog.Builder(this).setTitle("Saved PDFs")
-   .setItems((if(files.isEmpty())listOf("No PDFs yet") else files.map{it.name}).toTypedArray(),null)
-   .setPositiveButton("Close",null).show()
+ /** Lists the PDFs in one folder; tapping one opens it. */
+ private fun showFolder(dir:File){
+  val files=dir.walkTopDown().filter{it.isFile&&it.extension.equals("pdf",true)}.toList().sortedByDescending{it.lastModified()}
+  showPdfList(dir.relativeTo(docsRoot()).path,files)
+ }
+ private fun showRecent(){showPdfList("Saved PDFs",allPdfs())}
+ private fun showPdfList(title:String,files:List<File>){
+  val b=android.app.AlertDialog.Builder(this).setTitle(title).setPositiveButton("Close",null)
+  if(files.isEmpty())b.setMessage("No PDFs here yet.")
+  else b.setItems(files.map{it.name}.toTypedArray()){_,i->Documents.open(this,files[i])}
+  b.show()
  }
  private fun showSettings(){
   val options=arrayOf("Follow phone settings","Dark","Light")
