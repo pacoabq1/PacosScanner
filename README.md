@@ -14,6 +14,7 @@ Open-source Android document scanner created by Paco in collaboration with OpenA
 - Multi-page PDF creation, saved to Documents/PacosScanner on the phone, with Open and Share options
 - Tap a recent document or folder on the home screen to open it in the phone's PDF viewer
 - Name each PDF when saving (a dated name is filled in), and rename saved PDFs later from the home screen (Rename, or press and hold in a folder list)
+- Delete saved PDFs (asks first), and trash a bad picture on the review screen or from "Review or trash pages" before saving
 - On-device private document storage
 
 ### Planned / not yet working

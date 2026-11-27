@@ -130,6 +130,7 @@ class MainActivity : ComponentActivity() {
             if (pages.isEmpty()) toast("Add a page first")
             else straighten.launch(Intent(this, CropActivity::class.java).putExtra("path", pages.last().absolutePath))
         }
+        button("Review or trash pages") { reviewPages() }
         button("Save pages as PDF") {
             if (pages.isEmpty()) toast("Add a page first")
             else Documents.askName(this, "Name this document", Documents.defaultName(), "Save") { savePdf(it) }
@@ -142,6 +143,36 @@ class MainActivity : ComponentActivity() {
         setContentView(ScrollView(this).apply { addView(layout) })
 
         if (savedInstanceState == null && intent.getBooleanExtra(EXTRA_START_SCAN, false)) launchAutoScan()
+    }
+
+    /** Lists the pages waiting to be saved; tap one to see it and trash it if it's a bad picture. */
+    private fun reviewPages() {
+        if (pages.isEmpty()) { toast("No pages yet"); return }
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Pages ready (${pages.size})")
+            .setItems(Array(pages.size) { "Page ${it + 1}" }) { _, i -> showPage(i) }
+            .setPositiveButton("Close", null)
+            .show()
+    }
+
+    private fun showPage(index: Int) {
+        val file = pages.getOrNull(index) ?: return
+        val preview = ImageView(this).apply {
+            adjustViewBounds = true
+            setImageBitmap(ImageFiles.decodeForPdf(file, 1200))
+            setPadding(24, 24, 24, 0)
+        }
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Page ${index + 1}")
+            .setView(preview)
+            .setPositiveButton("Keep", null)
+            .setNegativeButton("Trash this page") { _, _ ->
+                pages.removeAt(index)
+                file.delete()
+                updateStatus()
+                toast("Page ${index + 1} trashed")
+            }
+            .show()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

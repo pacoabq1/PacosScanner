@@ -108,6 +108,32 @@ internal object Documents {
         return target
     }
 
+    /**
+     * Deletes a saved PDF from the app and its copy in Documents/PacosScanner on the phone.
+     * Returns false if the app's copy couldn't be deleted; [phoneCopyDeleted] reports the phone copy.
+     */
+    fun delete(context: Context, file: File, folder: List<String>, phoneCopyDeleted: (Boolean) -> Unit = {}): Boolean {
+        val phoneOk = deletePhoneCopy(context, folder, file.name)
+        val ok = !file.exists() || file.delete()
+        phoneCopyDeleted(phoneOk)
+        return ok
+    }
+
+    private fun deletePhoneCopy(context: Context, folder: List<String>, name: String): Boolean {
+        val relative = (listOf(Environment.DIRECTORY_DOCUMENTS, PHONE_FOLDER) + folder).joinToString("/")
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val selection = "${MediaStore.MediaColumns.RELATIVE_PATH}=? AND ${MediaStore.MediaColumns.DISPLAY_NAME}=?"
+                context.contentResolver.delete(MediaStore.Files.getContentUri("external"), selection, arrayOf("$relative/", name)) > 0
+            } else {
+                @Suppress("DEPRECATION")
+                File(File(Environment.getExternalStorageDirectory(), relative), name).delete()
+            }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     private fun renamePhoneCopy(context: Context, folder: List<String>, oldName: String, newName: String): Boolean {
         val relative = (listOf(Environment.DIRECTORY_DOCUMENTS, PHONE_FOLDER) + folder).joinToString("/")
         return try {

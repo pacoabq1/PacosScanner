@@ -35,8 +35,13 @@ class ScanReviewActivity:ComponentActivity(){
   val buttons=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL}
   val retake=TextView(this).apply{text="Retake";textSize=16f;typeface=Typeface.DEFAULT_BOLD;setTextColor(Color.WHITE);gravity=Gravity.CENTER;setPadding(0,dp(16),0,dp(16));background=pill(Color.rgb(38,61,79));setOnClickListener{setResult(RESULT_RETAKE);finish()}}
   val keep=TextView(this).apply{text="✓  Keep Scan";textSize=16f;typeface=Typeface.DEFAULT_BOLD;setTextColor(Color.rgb(0,42,48));gravity=Gravity.CENTER;setPadding(0,dp(16),0,dp(16));background=pill(cyan);setOnClickListener{setResult(RESULT_OK,Intent().putExtra("accepted_path",currentPath));finish()}}
+  val discard=TextView(this).apply{text="🗑  Trash";textSize=16f;typeface=Typeface.DEFAULT_BOLD;setTextColor(Color.WHITE);gravity=Gravity.CENTER;setPadding(0,dp(16),0,dp(16));background=pill(Color.rgb(122,44,52));setOnClickListener{
+   File(currentPath).delete();if(currentPath!=source.absolutePath)source.delete()
+   Toast.makeText(this@ScanReviewActivity,"Picture trashed",Toast.LENGTH_SHORT).show()
+   setResult(RESULT_CANCELED);finish()}}
+  buttons.addView(discard,LinearLayout.LayoutParams(0,-2,1f).apply{rightMargin=dp(6)})
   buttons.addView(retake,LinearLayout.LayoutParams(0,-2,1f).apply{rightMargin=dp(6)})
-  buttons.addView(keep,LinearLayout.LayoutParams(0,-2,1f).apply{leftMargin=dp(6)})
+  buttons.addView(keep,LinearLayout.LayoutParams(0,-2,1f))
   root.addView(buttons);setContentView(root)
  }
 }

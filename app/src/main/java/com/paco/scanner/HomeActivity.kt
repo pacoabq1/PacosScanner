@@ -97,6 +97,7 @@ class HomeActivity : Activity() {
    add(item,text("▤",30f,true,cyan))
    add(item,container().apply{setPadding(dp(14),0,0,0);addView(text(file.nameWithoutExtension,14f,true));addView(text(SimpleDateFormat("MMM d, yyyy",Locale.getDefault()).format(Date(file.lastModified())),12f,false,secondary))},1f)
    add(item,text("Rename",13f,true,cyan).apply{setPadding(dp(12),dp(8),0,dp(8));setOnClickListener{renameDoc(file)}})
+   add(item,text("Delete",13f,true,Color.rgb(240,108,108)).apply{setPadding(dp(12),dp(8),0,dp(8));setOnClickListener{confirmDelete(file)}})
    add(item,text("Share",13f,true,cyan).apply{setPadding(dp(12),dp(8),0,dp(8));setOnClickListener{Documents.share(this@HomeActivity,file)}})
    item.setOnClickListener{Documents.open(this,file)}
    root.addView(item,LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(8)})
@@ -132,11 +133,29 @@ class HomeActivity : Activity() {
   b.setItems(files.map{it.nameWithoutExtension}.toTypedArray()){_,i->Documents.open(this,files[i])}
   val dialog=b.show()
   dialog.listView?.setOnItemLongClickListener{_,_,i,_->dialog.dismiss();fileActions(files[i]);true}
-  Toast.makeText(this,"Tap to open. Press and hold to rename or share.",Toast.LENGTH_SHORT).show()
+  Toast.makeText(this,"Tap to open. Press and hold to rename, share or delete.",Toast.LENGTH_SHORT).show()
  }
  private fun fileActions(file:File){
   android.app.AlertDialog.Builder(this).setTitle(file.nameWithoutExtension)
-   .setItems(arrayOf("Open","Rename","Share")){_,i->when(i){0->Documents.open(this,file);1->renameDoc(file);else->Documents.share(this,file)}}
+   .setItems(arrayOf("Open","Rename","Share","Delete")){_,i->when(i){0->Documents.open(this,file);1->renameDoc(file);2->Documents.share(this,file);else->confirmDelete(file)}}
+   .setNegativeButton("Cancel",null).show()
+ }
+ private fun folderOf(file:File)=(file.parentFile?:docsRoot()).relativeTo(docsRoot()).path.split('/',File.separatorChar).filter{it.isNotBlank()}
+ /** Asks first, then deletes the PDF from the app and from Documents/PacosScanner. */
+ private fun confirmDelete(file:File){
+  android.app.AlertDialog.Builder(this).setTitle("Delete ${file.nameWithoutExtension}?")
+   .setMessage("This removes it from the app and from Documents/PacosScanner on your phone. It can't be undone.")
+   .setPositiveButton("Delete"){_,_->
+    var phoneOk=true
+    val ok=Documents.delete(this,file,folderOf(file)){phoneOk=it}
+    val msg=when{
+     !ok->"Couldn't delete that document."
+     !phoneOk->"Deleted from the app. If a copy is still in Documents/PacosScanner, delete it in My Files."
+     else->"Deleted ${file.nameWithoutExtension}"
+    }
+    Toast.makeText(this,msg,Toast.LENGTH_LONG).show()
+    render()
+   }
    .setNegativeButton("Cancel",null).show()
  }
  private fun renameDoc(file:File){
