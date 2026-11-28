@@ -111,14 +111,20 @@ class HomeActivity : Activity() {
   root.addView(r)
  }
  private fun showFolders(){
-  val dirs=docsRoot().walkTopDown().filter{it.isDirectory&&it!=docsRoot()}.toList()
-  if(dirs.isEmpty()){
-   android.app.AlertDialog.Builder(this).setTitle("Document folders").setMessage("No folders yet. Save a PDF to create one.").setPositiveButton("Close",null).show()
-   return
+  val dirs=docsRoot().walkTopDown().filter{it.isDirectory&&it!=docsRoot()}.toList().sortedBy{it.relativeTo(docsRoot()).path.lowercase(Locale.US)}
+  val b=android.app.AlertDialog.Builder(this).setTitle("Document folders")
+   .setPositiveButton("Close",null)
+   .setNeutralButton("New folder"){_,_->newFolder()}
+  if(dirs.isEmpty())b.setMessage("No folders yet. Tap New folder to make one, or save a PDF.")
+  else b.setItems(dirs.map{it.relativeTo(docsRoot()).path}.toTypedArray()){_,i->showFolder(dirs[i])}
+  b.show()
+ }
+ /** Makes and names a new folder, ready to save into. */
+ private fun newFolder(){
+  Documents.askNewFolder(this){path->
+   Toast.makeText(this,"Folder $path is ready. It's picked for your next save.",Toast.LENGTH_LONG).show()
+   render()
   }
-  android.app.AlertDialog.Builder(this).setTitle("Document folders")
-   .setItems(dirs.map{it.relativeTo(docsRoot()).path}.toTypedArray()){_,i->showFolder(dirs[i])}
-   .setPositiveButton("Close",null).show()
  }
  /** Lists the PDFs in one folder; tapping one opens it. */
  private fun showFolder(dir:File){
