@@ -184,14 +184,14 @@ class HomeActivity : Activity() {
  }
  /** Sends one saved PDF to the site; asks for the token first if it isn't set up yet. */
  private fun uploadDoc(file:File){
-  if(!SiteUpload.isSetUp(this)){SiteUpload.showSetup(this){if(SiteUpload.isSetUp(this))uploadDoc(file)};return}
+  if(!SiteUpload.isSetUp(this)){SiteUpload.showPairPrompt(this){if(SiteUpload.isSetUp(this))uploadDoc(file)};return}
   val folder=(file.parentFile?:docsRoot()).relativeTo(docsRoot()).path.split('/',File.separatorChar).filter{it.isNotBlank()}
   Toast.makeText(this,"Uploading ${file.nameWithoutExtension}…",Toast.LENGTH_SHORT).show()
   SiteUpload.upload(this,file,folder){Toast.makeText(this,it.message,Toast.LENGTH_LONG).show();render()}
  }
  private fun showSettings(){
   android.app.AlertDialog.Builder(this).setTitle("Settings")
-   .setItems(arrayOf("Appearance","Upload to my site")){_,i->if(i==0)showAppearance() else SiteUpload.showSetup(this){render()}}
+   .setItems(arrayOf("Appearance","Upload to my site")){_,i->if(i==0)showAppearance() else if(SiteUpload.isSetUp(this))SiteUpload.showSetup(this){render()} else SiteUpload.showPairPrompt(this){render()}}
    .setNegativeButton("Close",null).show()
  }
  private fun showAppearance(){

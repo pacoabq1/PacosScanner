@@ -234,7 +234,7 @@ class MainActivity : ComponentActivity() {
             upload.setTextColor(android.graphics.Color.rgb(0, 150, 170))
             upload.setOnClickListener {
                 if (SiteUpload.isSetUp(this)) startUpload()
-                else SiteUpload.showSetup(this) { if (SiteUpload.isSetUp(this)) startUpload() }
+                else SiteUpload.showPairPrompt(this) { if (SiteUpload.isSetUp(this)) startUpload() }
             }
         }
         android.app.AlertDialog.Builder(this)

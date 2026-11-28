@@ -160,6 +160,27 @@ internal object SiteUpload {
 
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8").replace("+", "%20")
 
+    /**
+     * The first thing shown when uploads aren't set up yet: one Pair now button, with the
+     * steps spelled out (including coming back to the browser after getting the emailed code).
+     * Typing the pass by hand is a smaller option.
+     */
+    fun showPairPrompt(activity: Activity, onSaved: () -> Unit = {}) {
+        AlertDialog.Builder(activity)
+            .setTitle("Pair with ${siteName(activity)}")
+            .setMessage(
+                "1. Tap Pair now. Your browser opens your site.\n\n" +
+                "2. Type your email and tap Send me a code. Open your mail app, copy the code, " +
+                "then go back to the browser (not this app) and enter it.\n\n" +
+                "3. Tap Open in Paco's Scanner, then Set up.\n\n" +
+                "If the code screen gets lost, just tap Pair now again."
+            )
+            .setPositiveButton("Pair now") { _, _ -> openPairPage(activity) }
+            .setNeutralButton("Type it in") { _, _ -> showSetup(activity, onSaved) }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
     /** Settings screen: site address, Client ID, Client Secret, automatic upload, and a Test button. */
     fun showSetup(activity: Activity, onSaved: () -> Unit = {}) {
         val pad = (20 * activity.resources.displayMetrics.density).toInt()
