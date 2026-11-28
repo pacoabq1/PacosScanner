@@ -187,9 +187,31 @@ class MainActivity : ComponentActivity() {
         status.text = "Saved ${file.name}"
         val message = if (savedIn != null) "Saved to your phone in $savedIn.\n\nYou can find it in My Files under Documents, or on the home screen here."
             else "Saved in the app, but it couldn't be copied to your phone's Documents folder. You can still open or share it from the home screen."
+        val pad = (20 * resources.displayMetrics.density).toInt()
+        val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(pad, pad / 2, pad, 0) }
+        box.addView(TextView(this).apply { text = message; textSize = 16f })
+        val upload = TextView(this).apply { textSize = 16f; setPadding(0, pad, 0, 0) }
+        box.addView(upload)
+        fun startUpload() {
+            upload.text = "Uploading to ${SiteUpload.siteName(this)}…"
+            upload.setOnClickListener(null)
+            SiteUpload.upload(this, file, segments) { result ->
+                upload.text = if (result.ok) "✓ ${result.message}" else "${result.message}\n\nTap here to try again."
+                if (!result.ok) upload.setOnClickListener { startUpload() }
+            }
+        }
+        if (SiteUpload.autoUpload(this)) startUpload()
+        else {
+            upload.text = "⇪ Upload to my site"
+            upload.setTextColor(android.graphics.Color.rgb(0, 150, 170))
+            upload.setOnClickListener {
+                if (SiteUpload.isSetUp(this)) startUpload()
+                else SiteUpload.showSetup(this) { if (SiteUpload.isSetUp(this)) startUpload() }
+            }
+        }
         android.app.AlertDialog.Builder(this)
             .setTitle("PDF saved")
-            .setMessage(message)
+            .setView(box)
             .setPositiveButton("Done", null)
             .setNeutralButton("Share") { _, _ -> Documents.share(this, file) }
             .setNegativeButton("Open") { _, _ -> Documents.open(this, file) }

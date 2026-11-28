@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12 and newer: keep the site upload token out of cloud backups and phone-to-phone transfers. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="site_upload.xml"/>
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="site_upload.xml"/>
+    </device-transfer>
+</data-extraction-rules>

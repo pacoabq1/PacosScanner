@@ -1,0 +1,18 @@
+{
+  // Upload service for Paco's Scanner. See site-worker/README.md.
+  "name": "pacos-scans",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-01",
+  "routes": [
+    { "pattern": "pacosworld.com/api/scans*", "zone_name": "pacosworld.com" }
+  ],
+  "r2_buckets": [
+    { "binding": "SCANS", "bucket_name": "pacos-scans" }
+  ],
+  "vars": {
+    // Filled in once Cloudflare Access is set up (Zero Trust > Settings shows the team domain;
+    // the Access application's Overview shows its Application Audience (AUD) tag).
+    "TEAM_DOMAIN": "",
+    "POLICY_AUD": ""
+  }
+}
