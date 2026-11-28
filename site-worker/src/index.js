@@ -8,7 +8,8 @@
  * service token (CF-Access-Client-Id / CF-Access-Client-Secret headers); a browser passes
  * with Mark's own sign-in. Access then adds a signed Cf-Access-Jwt-Assertion header, and
  * this Worker checks that signature itself, so a request that somehow skips Access is
- * still refused. If TEAM_DOMAIN or POLICY_AUD isn't set, every request is refused.
+ * still refused. Only ALLOWED_EMAIL (signed in) or the service token ALLOWED_TOKEN_ID (its Client ID)
+ * gets in. If TEAM_DOMAIN or POLICY_AUD isn't set, every request is refused.
  *
  * Endpoints (all under /api/scans):
  *   GET  /api/scans/ping                  -> {"ok":true,"who":...}   used by the app's Test button
@@ -171,6 +172,12 @@ export async function verifyAccess(request, env) {
     if (claims.iss !== `https://${env.TEAM_DOMAIN}`) return null;
     const aud = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
     if (!aud.includes(env.POLICY_AUD)) return null;
+    // Only Mark (signed in) or the phone's own service token, even if a policy is loosened later.
+    if (claims.email) {
+      if (!env.ALLOWED_EMAIL || claims.email.toLowerCase() !== env.ALLOWED_EMAIL.toLowerCase()) return null;
+    } else if (!env.ALLOWED_TOKEN_ID || claims.common_name !== env.ALLOWED_TOKEN_ID) {
+      return null;
+    }
     return claims;
   } catch {
     return null;

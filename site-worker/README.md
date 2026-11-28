@@ -19,7 +19,7 @@ Cloudflare R2 bucket. It runs on Cloudflare, so uploads work while the home PC i
 | R2 bucket | `pacos-scans` |
 | Worker | `pacos-scans`, route `pacosworld.com/api/scans*`, R2 binding `SCANS` |
 | Access service token | `Paco's Scanner phone` |
-| Access policy | Service Auth, allows only that token, on the application covering `pacosworld.com/api/scans` (plus Mark's email for browser use) |
+| Access application | `Paco's Scanner uploads`, path `pacosworld.com/api/scans` only, so the existing Paco's Home Page app is unchanged. Policies: Service Auth for that token, Allow for Mark's email |
 
 ## Endpoints
 
