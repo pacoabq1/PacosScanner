@@ -28,11 +28,23 @@ Cloudflare R2 bucket. It runs on Cloudflare, so uploads work while the home PC i
 - `GET /api/scans/files/<folder>/<name>.pdf` – open one
 - `PUT /api/scans/files/<folder>/<name>.pdf` – upload; an existing name gets ` (2)` instead of being overwritten
 
-## Deploy by hand (optional)
+## Live setup (Nov 28, 2026)
+
+Created in Mark's Cloudflare account: R2 bucket `pacos-scans`, Worker `pacos-scans` on route
+`pacosworld.com/api/scans*`, Access application "Paco's Scanner uploads" (path `/api/scans` only,
+policies "Only Mark" and "Paco's Scanner phone"), and the service token "Paco's Scanner phone".
+The Worker's settings (team domain, AUD, allowed email, token Client ID, and the token secret as an
+encrypted secret) live in Cloudflare, not in this repo.
+
+## Phone setup
+
+In the app: Settings > Upload to my site > **Pair with my site**. The browser opens
+`pacosworld.com/api/scans/pair`; sign in with your email code, tap **Open in Paco's Scanner**, then **Set up**.
+
+## Redeploying the code by hand (optional)
 
 ```
 cd site-worker
-npx wrangler r2 bucket create pacos-scans
-npx wrangler deploy
+npx wrangler deploy --keep-vars
 ```
-Then set `TEAM_DOMAIN` (for example `yourteam.cloudflareaccess.com`) and `POLICY_AUD` in `wrangler.jsonc` and deploy again.
+`--keep-vars` keeps the settings stored in Cloudflare (the values in `wrangler.jsonc` are blank on purpose).
