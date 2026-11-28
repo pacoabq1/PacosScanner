@@ -54,6 +54,90 @@ internal object Documents {
     }
 
 
+    /** Folder used until the user picks another one. */
+    const val DEFAULT_FOLDER = "Inbox"
+    private const val PREFS = "scanner"
+    private const val KEY_LAST_FOLDER = "last_folder"
+
+    /** The app's own copy of every saved PDF lives under here, one subfolder per folder. */
+    fun docsRoot(context: Context) = File(context.filesDir, "documents")
+
+    /** Turns a typed folder (e.g. "Military/Buyback") into safe folder names. */
+    fun cleanFolder(input: String): List<String> = input.split('/', '\\')
+        .map { it.trim().replace(Regex("[^a-zA-Z0-9 _-]"), "_").trim() }
+        .filter { it.isNotBlank() && it != "." && it != ".." }
+
+    /** Every folder the user has, as paths like "Inbox" or "Military/Buyback", Inbox included. */
+    fun folderNames(context: Context): List<String> {
+        val root = docsRoot(context)
+        val found = root.walkTopDown().filter { it.isDirectory && it != root }
+            .map { it.relativeTo(root).path.replace(File.separatorChar, '/') }
+            .toMutableSet()
+        found.add(DEFAULT_FOLDER)
+        return found.sortedBy { it.lowercase(Locale.US) }
+    }
+
+    fun lastFolder(context: Context): String =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_LAST_FOLDER, DEFAULT_FOLDER) ?: DEFAULT_FOLDER
+
+    private fun rememberFolder(context: Context, folder: String) =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_LAST_FOLDER, folder).apply()
+
+    /**
+     * Shows the user's folders to save into, with the last one used already ticked,
+     * and a New folder button for making and naming a new one.
+     */
+    fun pickFolder(activity: Activity, onPicked: (String) -> Unit) {
+        val names = folderNames(activity)
+        var selected = names.indexOf(lastFolder(activity)).coerceAtLeast(0)
+        android.app.AlertDialog.Builder(activity)
+            .setTitle("Save in which folder?")
+            .setSingleChoiceItems(names.toTypedArray(), selected) { _, i -> selected = i }
+            .setPositiveButton("Next") { _, _ ->
+                val folder = names[selected]
+                rememberFolder(activity, folder)
+                onPicked(folder)
+            }
+            .setNeutralButton("New folder") { _, _ -> askNewFolder(activity, onPicked) }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    /** Asks for a folder name, makes the folder, and hands back its path. */
+    fun askNewFolder(activity: Activity, onCreated: (String) -> Unit) {
+        val field = EditText(activity).apply {
+            isSingleLine = true
+            hint = "Folder name, e.g. Receipts"
+        }
+        val pad = (20 * activity.resources.displayMetrics.density).toInt()
+        val box = android.widget.FrameLayout(activity).apply { setPadding(pad, pad / 2, pad, 0); addView(field) }
+        android.app.AlertDialog.Builder(activity)
+            .setTitle("New folder")
+            .setMessage("Use a slash for a folder inside a folder, like Military/Buyback.")
+            .setView(box)
+            .setPositiveButton("Create") { _, _ ->
+                val segments = cleanFolder(field.text.toString())
+                if (segments.isEmpty()) {
+                    Toast.makeText(activity, "Type a name for the folder first.", Toast.LENGTH_LONG).show()
+                    askNewFolder(activity, onCreated)
+                    return@setPositiveButton
+                }
+                val dir = segments.fold(docsRoot(activity)) { parent, s -> File(parent, s) }
+                val existed = dir.isDirectory
+                if (!existed && !dir.mkdirs()) {
+                    Toast.makeText(activity, "Couldn't make that folder.", Toast.LENGTH_LONG).show()
+                    return@setPositiveButton
+                }
+                val path = segments.joinToString("/")
+                if (existed) Toast.makeText(activity, "You already have a folder called $path, so it's using that one.", Toast.LENGTH_LONG).show()
+                rememberFolder(activity, path)
+                onCreated(path)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+        field.requestFocus()
+    }
+
     /** A readable default name, e.g. "Scan Nov 27 2026 10.06 AM". */
     fun defaultName(): String = "Scan " + SimpleDateFormat("MMM d yyyy h.mm a", Locale.US).format(Date())
 
@@ -106,6 +190,32 @@ internal object Documents {
         if (!file.renameTo(target)) return null
         phoneCopyRenamed(phoneOk)
         return target
+    }
+
+    /**
+     * Deletes a saved PDF from the app and its copy in Documents/PacosScanner on the phone.
+     * Returns false if the app's copy couldn't be deleted; [phoneCopyDeleted] reports the phone copy.
+     */
+    fun delete(context: Context, file: File, folder: List<String>, phoneCopyDeleted: (Boolean) -> Unit = {}): Boolean {
+        val phoneOk = deletePhoneCopy(context, folder, file.name)
+        val ok = !file.exists() || file.delete()
+        phoneCopyDeleted(phoneOk)
+        return ok
+    }
+
+    private fun deletePhoneCopy(context: Context, folder: List<String>, name: String): Boolean {
+        val relative = (listOf(Environment.DIRECTORY_DOCUMENTS, PHONE_FOLDER) + folder).joinToString("/")
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val selection = "${MediaStore.MediaColumns.RELATIVE_PATH}=? AND ${MediaStore.MediaColumns.DISPLAY_NAME}=?"
+                context.contentResolver.delete(MediaStore.Files.getContentUri("external"), selection, arrayOf("$relative/", name)) > 0
+            } else {
+                @Suppress("DEPRECATION")
+                File(File(Environment.getExternalStorageDirectory(), relative), name).delete()
+            }
+        } catch (e: Exception) {
+            false
+        }
     }
 
     private fun renamePhoneCopy(context: Context, folder: List<String>, oldName: String, newName: String): Boolean {
