@@ -17,6 +17,7 @@ Open-source Android document scanner created by Paco in collaboration with OpenA
 - Pick a folder when saving: choose one of your folders (the last one used is already ticked) or tap **New folder** and name it. Folders can also be made from **Folders** on the home screen
 - Delete saved PDFs (asks first), and trash a bad picture on the review screen or from "Review or trash pages" before saving
 - On-device private document storage
+- **Upload to my site (testing):** send a saved PDF to private storage on pacosworld.com, automatically after each save or from the document list. Set up in Settings > Upload to my site with a Cloudflare Access service token. The site side lives in `site-worker/`.
 
 ### Planned / not yet working
 The home screen is the **first implementation**, not a pixel-perfect match to the concept artwork. Its gallery shortcut currently opens the scanner workflow; saved-file rows are previews, not an interactive document browser. Automatic detection is a basic brightness heuristic and may fail on shadows or low contrast. Full camera overlay, thumbnails, renaming or deleting folders, document search, page reorder, OCR, integrated fax, animations, and polished icons are still planned.
@@ -31,7 +32,7 @@ Every push to GitHub builds the app automatically (see the Actions tab). Officia
 You can still open the project in Android Studio and run it on a phone. The Gradle wrapper is now included.
 
 ### Privacy
-No ads or remote document processing. Each PDF is saved on the phone in Documents/PacosScanner/<folder> (visible in My Files, kept if the app is uninstalled), plus a copy inside the app for the home screen list. Sharing with external apps is governed by those apps' policies.
+No ads or remote document processing. Nothing leaves the phone unless you set up Upload to my site, which sends PDFs only to your own site. Each PDF is saved on the phone in Documents/PacosScanner/<folder> (visible in My Files, kept if the app is uninstalled), plus a copy inside the app for the home screen list. Sharing with external apps is governed by those apps' policies.
 
 ### Design integrity
 Any promotional images are **concept mockups**, not screenshots of the current app. Features in mockups may be aspirational until implemented and verified.

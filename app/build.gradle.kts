@@ -10,7 +10,7 @@ android {
         targetSdk = 35
         // GitHub's automatic build numbers each test build so updates install cleanly.
         versionCode = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
-        versionName = "1.1.0"
+        versionName = "1.2.0"
     }
 
     signingConfigs {

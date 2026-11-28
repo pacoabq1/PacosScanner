@@ -34,8 +34,10 @@ jobs:
           name: PacosScanner-test-apk
           path: PacosScanner-test.apk
 
+      # A commit message containing [hold-release] still builds (to check it compiles) but
+      # leaves the current "Test build" release alone.
       - name: Publish to the "Test build" release (easy to download on a phone)
-        if: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}
+        if: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') && !contains(github.event.head_commit.message, '[hold-release]') }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

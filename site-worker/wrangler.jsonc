@@ -1,0 +1,22 @@
+{
+  // Upload service for Paco's Scanner. See site-worker/README.md.
+  // Its route is more specific than pacosworld-sync's pacosworld.com/api/*, so it only takes /api/scans.
+  "name": "pacos-scans",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-01",
+  "routes": [
+    { "pattern": "pacosworld.com/api/scans*", "zone_name": "pacosworld.com" }
+  ],
+  "r2_buckets": [
+    { "binding": "SCANS", "bucket_name": "pacos-scans" }
+  ],
+  "vars": {
+    // TEAM_DOMAIN: the Zero Trust team domain. POLICY_AUD: the AUD tag of the Access application
+    // "Paco's Scanner uploads" (covers pacosworld.com/api/scans only, so the main site is untouched).
+    // ALLOWED_TOKEN_ID: the Client ID (not the secret) of the phone's service token.
+    "TEAM_DOMAIN": "shy-base-ae7a.cloudflareaccess.com",
+    "POLICY_AUD": "",
+    "ALLOWED_EMAIL": "",
+    "ALLOWED_TOKEN_ID": ""
+  }
+}

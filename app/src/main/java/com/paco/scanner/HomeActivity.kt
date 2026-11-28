@@ -48,7 +48,8 @@ class HomeActivity : Activity() {
   secondary=if(dark)Color.rgb(167,198,215) else Color.rgb(76,102,121)
   window.statusBarColor=bg;window.navigationBarColor=bg
  }
- override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);render()}
+ override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);render();if(savedInstanceState==null)SiteUpload.handleLink(this,intent?.data)}
+ override fun onNewIntent(intent:Intent){super.onNewIntent(intent);setIntent(intent);SiteUpload.handleLink(this,intent.data)}
  override fun onResume(){super.onResume();render()}
  private fun render(){
   chooseTheme()
@@ -99,10 +100,12 @@ class HomeActivity : Activity() {
    add(item,text("Rename",13f,true,cyan).apply{setPadding(dp(12),dp(8),0,dp(8));setOnClickListener{renameDoc(file)}})
    add(item,text("Delete",13f,true,Color.rgb(240,108,108)).apply{setPadding(dp(12),dp(8),0,dp(8));setOnClickListener{confirmDelete(file)}})
    add(item,text("Share",13f,true,cyan).apply{setPadding(dp(12),dp(8),0,dp(8));setOnClickListener{Documents.share(this@HomeActivity,file)}})
+   val onSite=SiteUpload.isUploaded(this,file)
+   add(item,text(if(onSite)"✓" else "⇪",16f,true,if(onSite)secondary else cyan).apply{setPadding(dp(12),dp(8),0,dp(8));setOnClickListener{uploadDoc(file)}})
    item.setOnClickListener{Documents.open(this,file)}
    root.addView(item,LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(8)})
   }
-  root.addView(text("On-device storage • No account required",12f,false,secondary).apply{gravity=Gravity.CENTER;setPadding(0,dp(26),0,0)})
+  root.addView(text(if(SiteUpload.isSetUp(this))"Saved on this phone • Uploads to ${SiteUpload.siteName(this)}" else "On-device storage • No account required",12f,false,secondary).apply{gravity=Gravity.CENTER;setPadding(0,dp(26),0,0)})
  }
  private fun section(title:String,action:String,onClick:()->Unit){
   val r=row().apply{setPadding(0,dp(25),0,dp(12))}
@@ -139,11 +142,11 @@ class HomeActivity : Activity() {
   b.setItems(files.map{it.nameWithoutExtension}.toTypedArray()){_,i->Documents.open(this,files[i])}
   val dialog=b.show()
   dialog.listView?.setOnItemLongClickListener{_,_,i,_->dialog.dismiss();fileActions(files[i]);true}
-  Toast.makeText(this,"Tap to open. Press and hold to rename, share or delete.",Toast.LENGTH_SHORT).show()
+  Toast.makeText(this,"Tap to open. Press and hold to rename, share, upload or delete.",Toast.LENGTH_SHORT).show()
  }
  private fun fileActions(file:File){
   android.app.AlertDialog.Builder(this).setTitle(file.nameWithoutExtension)
-   .setItems(arrayOf("Open","Rename","Share","Delete")){_,i->when(i){0->Documents.open(this,file);1->renameDoc(file);2->Documents.share(this,file);else->confirmDelete(file)}}
+   .setItems(arrayOf("Open","Rename","Share","Upload to my site","Delete")){_,i->when(i){0->Documents.open(this,file);1->renameDoc(file);2->Documents.share(this,file);3->uploadDoc(file);else->confirmDelete(file)}}
    .setNegativeButton("Cancel",null).show()
  }
  private fun folderOf(file:File)=(file.parentFile?:docsRoot()).relativeTo(docsRoot()).path.split('/',File.separatorChar).filter{it.isNotBlank()}
@@ -169,6 +172,7 @@ class HomeActivity : Activity() {
    val folder=(file.parentFile?:docsRoot()).relativeTo(docsRoot()).path.split('/',File.separatorChar).filter{it.isNotBlank()}
    var phoneOk=true
    val renamed=Documents.rename(this,file,folder,newName){phoneOk=it}
+   if(renamed!=null&&renamed!=file)SiteUpload.moveMark(this,file,renamed)
    val msg=when{
     renamed==null->"Couldn't rename that document."
     !phoneOk->"Renamed to ${renamed.nameWithoutExtension} here, but the copy in Documents/PacosScanner kept its old name."
@@ -178,7 +182,19 @@ class HomeActivity : Activity() {
    render()
   }
  }
+ /** Sends one saved PDF to the site; asks for the token first if it isn't set up yet. */
+ private fun uploadDoc(file:File){
+  if(!SiteUpload.isSetUp(this)){SiteUpload.showPairPrompt(this){if(SiteUpload.isSetUp(this))uploadDoc(file)};return}
+  val folder=(file.parentFile?:docsRoot()).relativeTo(docsRoot()).path.split('/',File.separatorChar).filter{it.isNotBlank()}
+  Toast.makeText(this,"Uploading ${file.nameWithoutExtension}…",Toast.LENGTH_SHORT).show()
+  SiteUpload.upload(this,file,folder){Toast.makeText(this,it.message,Toast.LENGTH_LONG).show();render()}
+ }
  private fun showSettings(){
+  android.app.AlertDialog.Builder(this).setTitle("Settings")
+   .setItems(arrayOf("Appearance","Upload to my site")){_,i->if(i==0)showAppearance() else if(SiteUpload.isSetUp(this))SiteUpload.showSetup(this){render()} else SiteUpload.showPairPrompt(this){render()}}
+   .setNegativeButton("Close",null).show()
+ }
+ private fun showAppearance(){
   val options=arrayOf("Follow phone settings","Dark","Light")
   val selected=when(getPreferences(MODE_PRIVATE).getString("theme","system")){"dark"->1;"light"->2;else->0}
   android.app.AlertDialog.Builder(this).setTitle("Appearance")
