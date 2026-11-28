@@ -14,11 +14,13 @@ Open-source Android document scanner created by Paco in collaboration with OpenA
 - Multi-page PDF creation, saved to Documents/PacosScanner on the phone, with Open and Share options
 - Tap a recent document or folder on the home screen to open it in the phone's PDF viewer
 - Name each PDF when saving (a dated name is filled in), and rename saved PDFs later from the home screen (Rename, or press and hold in a folder list)
+- Pick a folder when saving: choose one of your folders (the last one used is already ticked) or tap **New folder** and name it. Folders can also be made from **Folders** on the home screen
+- Delete saved PDFs (asks first), and trash a bad picture on the review screen or from "Review or trash pages" before saving
 - On-device private document storage
 - **Upload to my site (testing):** send a saved PDF to private storage on pacosworld.com, automatically after each save or from the document list. Set up in Settings > Upload to my site with a Cloudflare Access service token. The site side lives in `site-worker/`.
 
 ### Planned / not yet working
-The home screen is the **first implementation**, not a pixel-perfect match to the concept artwork. Its gallery shortcut currently opens the scanner workflow; saved-file rows are previews, not an interactive document browser. Automatic detection is a basic brightness heuristic and may fail on shadows or low contrast. Full camera overlay, thumbnails, folder management, document search, page reorder, OCR, integrated fax, animations, and polished icons are still planned.
+The home screen is the **first implementation**, not a pixel-perfect match to the concept artwork. Its gallery shortcut currently opens the scanner workflow; saved-file rows are previews, not an interactive document browser. Automatic detection is a basic brightness heuristic and may fail on shadows or low contrast. Full camera overlay, thumbnails, renaming or deleting folders, document search, page reorder, OCR, integrated fax, animations, and polished icons are still planned.
 
 ### Build and test
 Every push to GitHub builds the app automatically (see the Actions tab). Official versions from main are on the **Releases** page (for example v1.0.0), and the newest work-in-progress build is the **Test build** release:

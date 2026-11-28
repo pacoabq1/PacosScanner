@@ -18,7 +18,6 @@ import java.io.File
 class MainActivity : ComponentActivity() {
     private val pages = mutableListOf<File>()
     private lateinit var status: TextView
-    private lateinit var folder: EditText
     private var pendingPhoto: File? = null
 
     /** Google's on-phone document scanner: finds edges, straightens, cleans up, multi-page. */
@@ -115,8 +114,6 @@ class MainActivity : ComponentActivity() {
         val layout = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(36, 50, 36, 24) }
         layout.addView(TextView(this).apply { text = "Paco's Scanner"; textSize = 27f })
         layout.addView(TextView(this).apply { text = "Scan • review • straighten • create PDF" })
-        folder = EditText(this).apply { id = R_ID_FOLDER; hint = "Folder (e.g. Military/Buyback)"; setText("Inbox") }
-        layout.addView(folder)
         status = TextView(this).apply { textSize = 18f }
         layout.addView(status)
         updateStatus()
@@ -130,9 +127,12 @@ class MainActivity : ComponentActivity() {
             if (pages.isEmpty()) toast("Add a page first")
             else straighten.launch(Intent(this, CropActivity::class.java).putExtra("path", pages.last().absolutePath))
         }
+        button("Review or trash pages") { reviewPages() }
         button("Save pages as PDF") {
             if (pages.isEmpty()) toast("Add a page first")
-            else Documents.askName(this, "Name this document", Documents.defaultName(), "Save") { savePdf(it) }
+            else Documents.pickFolder(this) { folder ->
+                Documents.askName(this, "Name this document", Documents.defaultName(), "Save") { savePdf(folder, it) }
+            }
         }
         button("Clear current pages") { pages.clear(); updateStatus() }
         layout.addView(TextView(this).apply {
@@ -144,18 +144,46 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null && intent.getBooleanExtra(EXTRA_START_SCAN, false)) launchAutoScan()
     }
 
+    /** Lists the pages waiting to be saved; tap one to see it and trash it if it's a bad picture. */
+    private fun reviewPages() {
+        if (pages.isEmpty()) { toast("No pages yet"); return }
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Pages ready (${pages.size})")
+            .setItems(Array(pages.size) { "Page ${it + 1}" }) { _, i -> showPage(i) }
+            .setPositiveButton("Close", null)
+            .show()
+    }
+
+    private fun showPage(index: Int) {
+        val file = pages.getOrNull(index) ?: return
+        val preview = ImageView(this).apply {
+            adjustViewBounds = true
+            setImageBitmap(ImageFiles.decodeForPdf(file, 1200))
+            setPadding(24, 24, 24, 0)
+        }
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Page ${index + 1}")
+            .setView(preview)
+            .setPositiveButton("Keep", null)
+            .setNegativeButton("Trash this page") { _, _ ->
+                pages.removeAt(index)
+                file.delete()
+                updateStatus()
+                toast("Page ${index + 1} trashed")
+            }
+            .show()
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putStringArrayList("pages", ArrayList(pages.map { it.absolutePath }))
         pendingPhoto?.let { outState.putString("pendingPhoto", it.absolutePath) }
     }
 
-    private fun savePdf(name: String) {
+    private fun savePdf(folder: String, name: String) {
         if (pages.isEmpty()) { toast("Add a page first"); return }
-        val segments = folder.text.toString().split('/')
-            .map { it.trim().replace(Regex("[^a-zA-Z0-9 _-]"), "_") }
-            .filter { it.isNotBlank() && it != "." && it != ".." }
-        val dir = segments.fold(File(filesDir, "documents")) { parent, s -> File(parent, s) }.apply { mkdirs() }
+        val segments = Documents.cleanFolder(folder).ifEmpty { listOf(Documents.DEFAULT_FOLDER) }
+        val dir = segments.fold(Documents.docsRoot(this)) { parent, s -> File(parent, s) }.apply { mkdirs() }
         val file = Documents.uniqueFile(dir, name)
         val pdf = PdfDocument()
         var count = 0
@@ -220,6 +248,5 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_START_SCAN = "start_scan"
-        private const val R_ID_FOLDER = 1001
     }
 }

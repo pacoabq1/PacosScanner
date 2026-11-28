@@ -97,9 +97,10 @@ class HomeActivity : Activity() {
    add(item,text("▤",30f,true,cyan))
    add(item,container().apply{setPadding(dp(14),0,0,0);addView(text(file.nameWithoutExtension,14f,true));addView(text(SimpleDateFormat("MMM d, yyyy",Locale.getDefault()).format(Date(file.lastModified())),12f,false,secondary))},1f)
    add(item,text("Rename",13f,true,cyan).apply{setPadding(dp(12),dp(8),0,dp(8));setOnClickListener{renameDoc(file)}})
+   add(item,text("Delete",13f,true,Color.rgb(240,108,108)).apply{setPadding(dp(12),dp(8),0,dp(8));setOnClickListener{confirmDelete(file)}})
    add(item,text("Share",13f,true,cyan).apply{setPadding(dp(12),dp(8),0,dp(8));setOnClickListener{Documents.share(this@HomeActivity,file)}})
    val onSite=SiteUpload.isUploaded(this,file)
-   add(item,text(if(onSite)"✓ Site" else "Upload",13f,true,if(onSite)secondary else cyan).apply{setPadding(dp(12),dp(8),0,dp(8));setOnClickListener{uploadDoc(file)}})
+   add(item,text(if(onSite)"✓" else "⇪",16f,true,if(onSite)secondary else cyan).apply{setPadding(dp(12),dp(8),0,dp(8));setOnClickListener{uploadDoc(file)}})
    item.setOnClickListener{Documents.open(this,file)}
    root.addView(item,LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(8)})
   }
@@ -112,14 +113,20 @@ class HomeActivity : Activity() {
   root.addView(r)
  }
  private fun showFolders(){
-  val dirs=docsRoot().walkTopDown().filter{it.isDirectory&&it!=docsRoot()}.toList()
-  if(dirs.isEmpty()){
-   android.app.AlertDialog.Builder(this).setTitle("Document folders").setMessage("No folders yet. Save a PDF to create one.").setPositiveButton("Close",null).show()
-   return
+  val dirs=docsRoot().walkTopDown().filter{it.isDirectory&&it!=docsRoot()}.toList().sortedBy{it.relativeTo(docsRoot()).path.lowercase(Locale.US)}
+  val b=android.app.AlertDialog.Builder(this).setTitle("Document folders")
+   .setPositiveButton("Close",null)
+   .setNeutralButton("New folder"){_,_->newFolder()}
+  if(dirs.isEmpty())b.setMessage("No folders yet. Tap New folder to make one, or save a PDF.")
+  else b.setItems(dirs.map{it.relativeTo(docsRoot()).path}.toTypedArray()){_,i->showFolder(dirs[i])}
+  b.show()
+ }
+ /** Makes and names a new folder, ready to save into. */
+ private fun newFolder(){
+  Documents.askNewFolder(this){path->
+   Toast.makeText(this,"Folder $path is ready. It's picked for your next save.",Toast.LENGTH_LONG).show()
+   render()
   }
-  android.app.AlertDialog.Builder(this).setTitle("Document folders")
-   .setItems(dirs.map{it.relativeTo(docsRoot()).path}.toTypedArray()){_,i->showFolder(dirs[i])}
-   .setPositiveButton("Close",null).show()
  }
  /** Lists the PDFs in one folder; tapping one opens it. */
  private fun showFolder(dir:File){
@@ -134,11 +141,29 @@ class HomeActivity : Activity() {
   b.setItems(files.map{it.nameWithoutExtension}.toTypedArray()){_,i->Documents.open(this,files[i])}
   val dialog=b.show()
   dialog.listView?.setOnItemLongClickListener{_,_,i,_->dialog.dismiss();fileActions(files[i]);true}
-  Toast.makeText(this,"Tap to open. Press and hold to rename, share or upload.",Toast.LENGTH_SHORT).show()
+  Toast.makeText(this,"Tap to open. Press and hold to rename, share, upload or delete.",Toast.LENGTH_SHORT).show()
  }
  private fun fileActions(file:File){
   android.app.AlertDialog.Builder(this).setTitle(file.nameWithoutExtension)
-   .setItems(arrayOf("Open","Rename","Share","Upload to my site")){_,i->when(i){0->Documents.open(this,file);1->renameDoc(file);2->Documents.share(this,file);else->uploadDoc(file)}}
+   .setItems(arrayOf("Open","Rename","Share","Upload to my site","Delete")){_,i->when(i){0->Documents.open(this,file);1->renameDoc(file);2->Documents.share(this,file);3->uploadDoc(file);else->confirmDelete(file)}}
+   .setNegativeButton("Cancel",null).show()
+ }
+ private fun folderOf(file:File)=(file.parentFile?:docsRoot()).relativeTo(docsRoot()).path.split('/',File.separatorChar).filter{it.isNotBlank()}
+ /** Asks first, then deletes the PDF from the app and from Documents/PacosScanner. */
+ private fun confirmDelete(file:File){
+  android.app.AlertDialog.Builder(this).setTitle("Delete ${file.nameWithoutExtension}?")
+   .setMessage("This removes it from the app and from Documents/PacosScanner on your phone. It can't be undone.")
+   .setPositiveButton("Delete"){_,_->
+    var phoneOk=true
+    val ok=Documents.delete(this,file,folderOf(file)){phoneOk=it}
+    val msg=when{
+     !ok->"Couldn't delete that document."
+     !phoneOk->"Deleted from the app. If a copy is still in Documents/PacosScanner, delete it in My Files."
+     else->"Deleted ${file.nameWithoutExtension}"
+    }
+    Toast.makeText(this,msg,Toast.LENGTH_LONG).show()
+    render()
+   }
    .setNegativeButton("Cancel",null).show()
  }
  private fun renameDoc(file:File){
