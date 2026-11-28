@@ -12,6 +12,7 @@
  * gets in. If TEAM_DOMAIN or POLICY_AUD isn't set, every request is refused.
  *
  * Endpoints (all under /api/scans):
+ *   GET  /api/scans/pair                  -> page that hands the phone pass to the app (Mark's sign-in only)
  *   GET  /api/scans/ping                  -> {"ok":true,"who":...}   used by the app's Test button
  *   GET  /api/scans/files                 -> {"files":[{key,size,uploaded}]}
  *   GET  /api/scans/files/<folder>/<name> -> the PDF
@@ -32,6 +33,11 @@ export default {
 
     const rest = url.pathname.slice(PREFIX.length);
     try {
+      if (rest === "/pair" && request.method === "GET") {
+        // Only Mark, signed in with his email, can see the phone pass; the pass itself can't.
+        if (!who.email || !env.ALLOWED_TOKEN_ID || !env.PHONE_TOKEN_SECRET) return json({ error: "not allowed" }, 403);
+        return pairPage(url.origin, env.ALLOWED_TOKEN_ID, env.PHONE_TOKEN_SECRET);
+      }
       if (rest === "/ping" && request.method === "GET") {
         return json({ ok: true, who: who.email || (who.common_name ? "service token" : "signed in") });
       }
@@ -120,6 +126,31 @@ async function freeKey(env, key) {
     if (!(await env.SCANS.head(candidate))) return candidate;
   }
   return `${base} (${Date.now()}).pdf`;
+}
+
+// ---------- phone pairing ----------
+
+const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
+/** A page that hands the phone pass to Paco's Scanner on the same phone with one tap. */
+function pairPage(origin, id, secret) {
+  const q = `site=${encodeURIComponent(origin)}&id=${encodeURIComponent(id)}&secret=${encodeURIComponent(secret)}`;
+  const intent = `intent://setup?${q}#Intent;scheme=pacosscanner;package=com.paco.scanner;end`;
+  const html = `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pair Paco's Scanner</title>
+<style>body{font-family:system-ui,sans-serif;background:#051629;color:#fff;padding:28px;line-height:1.45}a.b{display:block;text-align:center;background:#1bdee3;color:#00232f;font-weight:700;padding:18px;border-radius:18px;text-decoration:none;font-size:19px;margin:22px 0}details{color:#a7c6d7}code{word-break:break-all;color:#fff}</style>
+<h2>Set up uploads on this phone</h2>
+<p>Open this page on the phone that has Paco's Scanner, then tap the button. The app asks you to confirm.</p>
+<a class="b" href="${esc(intent)}">Open in Paco's Scanner</a>
+<details><summary>Enter it by hand instead</summary><p>Client ID<br><code>${esc(id)}</code></p><p>Client Secret<br><code>${esc(secret)}</code></p></details>`;
+  return new Response(html, {
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store",
+      "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'",
+      "x-robots-tag": "noindex",
+      "referrer-policy": "no-referrer",
+    },
+  });
 }
 
 // ---------- Cloudflare Access check ----------

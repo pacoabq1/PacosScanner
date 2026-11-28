@@ -48,7 +48,8 @@ class HomeActivity : Activity() {
   secondary=if(dark)Color.rgb(167,198,215) else Color.rgb(76,102,121)
   window.statusBarColor=bg;window.navigationBarColor=bg
  }
- override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);render()}
+ override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);render();if(savedInstanceState==null)SiteUpload.handleLink(this,intent?.data)}
+ override fun onNewIntent(intent:Intent){super.onNewIntent(intent);setIntent(intent);SiteUpload.handleLink(this,intent.data)}
  override fun onResume(){super.onResume();render()}
  private fun render(){
   chooseTheme()

@@ -52,6 +52,48 @@ internal object SiteUpload {
 
     class Result(val ok: Boolean, val message: String)
 
+    /** The page on the site (Mark's sign-in only) that hands this phone its pass. */
+    private fun pairUrl(c: Context) = site(c).trimEnd('/') + "/api/scans/pair"
+
+    private fun openPairPage(activity: Activity) {
+        try {
+            activity.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(pairUrl(activity))))
+        } catch (e: Exception) {
+            Toast.makeText(activity, "No web browser found on this phone.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    /**
+     * Handles pacosscanner://setup?site=...&id=...&secret=... from the site's pairing page.
+     * Only accepted for the site address already set in the app (pacosworld.com by default),
+     * and only after the user confirms, so another page can't point uploads somewhere else.
+     */
+    fun handleLink(activity: Activity, uri: android.net.Uri?): Boolean {
+        if (uri == null || uri.scheme != "pacosscanner" || uri.host != "setup") return false
+        val linkSite = (uri.getQueryParameter("site") ?: "").trim().trimEnd('/')
+        val id = (uri.getQueryParameter("id") ?: "").trim()
+        val secret = (uri.getQueryParameter("secret") ?: "").trim()
+        if (!linkSite.equals(site(activity).trimEnd('/'), ignoreCase = true)) {
+            Toast.makeText(activity, "That setup link isn't from ${siteName(activity)}, so it was ignored.", Toast.LENGTH_LONG).show()
+            return true
+        }
+        if (id.isBlank() || secret.isBlank()) {
+            Toast.makeText(activity, "That setup link is incomplete.", Toast.LENGTH_LONG).show()
+            return true
+        }
+        AlertDialog.Builder(activity)
+            .setTitle("Upload to ${siteName(activity)}?")
+            .setMessage("Save this phone's pass and upload every new scan to ${siteName(activity)} automatically? You can turn automatic uploads off in Settings.")
+            .setPositiveButton("Set up") { _, _ ->
+                prefs(activity).edit().putString("client_id", id).putString("client_secret", secret).putBoolean("auto", true).apply()
+                Toast.makeText(activity, "Testing the connection…", Toast.LENGTH_SHORT).show()
+                test(activity) { Toast.makeText(activity, it.message, Toast.LENGTH_LONG).show() }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+        return true
+    }
+
     private val main = Handler(Looper.getMainLooper())
 
     /**
@@ -123,8 +165,16 @@ internal object SiteUpload {
         val pad = (20 * activity.resources.displayMetrics.density).toInt()
         val box = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL; setPadding(pad, pad / 2, pad, 0) }
         box.addView(TextView(activity).apply {
-            text = "Uploads go to private storage on your site. Only your phone (with this token) and you, signed in, can reach them."
+            text = "Uploads go to private storage on your site. Only your phone (with its pass) and you, signed in, can reach them."
         })
+        box.addView(TextView(activity).apply {
+            text = "⇪ Pair with my site (easiest)"
+            textSize = 17f
+            setTextColor(android.graphics.Color.rgb(0, 150, 170))
+            setPadding(0, pad / 2, 0, pad / 4)
+            setOnClickListener { openPairPage(activity) }
+        })
+        box.addView(TextView(activity).apply { text = "Opens your site in the browser. Sign in, tap Open in Paco's Scanner, and it fills this in. Or type the pass below." ; textSize = 12f })
         val siteField = EditText(activity).apply { hint = "Site address"; setText(site(activity)); isSingleLine = true; inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI }
         val idField = EditText(activity).apply { hint = "Client ID"; setText(clientId(activity)); isSingleLine = true }
         val secretField = EditText(activity).apply {
